@@ -19,6 +19,12 @@ EstateMint aims to become a trusted digital infrastructure for real estate trans
 - TypeScript
 - Monorepo Architecture
 
+## Configuration
+
+EstateMint uses a global NestJS configuration module backed by `@nestjs/config` and Joi validation. Environment variables are loaded during application bootstrap and validated before the server starts, so missing or invalid infrastructure settings fail fast.
+
+For local development, copy `.env.example` to `.env` and adjust the values for your machine. See [docs/configuration.md](docs/configuration.md) for the full configuration workflow, validation rules, and guidance for adding new environment variables.
+
 ## High-Level Architecture
 
 EstateMint starts as a modular monolith with clear domain boundaries. Core modules include:
