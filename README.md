@@ -25,6 +25,16 @@ EstateMint uses a global NestJS configuration module backed by `@nestjs/config` 
 
 For local development, copy `.env.example` to `.env` and adjust the values for your machine. See [docs/configuration.md](docs/configuration.md) for the full configuration workflow, validation rules, and guidance for adding new environment variables.
 
+## Health Checks
+
+EstateMint exposes public health endpoints for operations and monitoring:
+
+- `GET /health`
+- `GET /health/live`
+- `GET /health/ready`
+
+These endpoints are designed for Docker, Kubernetes, load balancers, and external monitoring systems. See [docs/health-checks.md](docs/health-checks.md) for response examples and probe guidance.
+
 ## High-Level Architecture
 
 EstateMint starts as a modular monolith with clear domain boundaries. Core modules include:
