@@ -4,15 +4,15 @@ EstateMint exposes public health endpoints for containers, load balancers, orche
 
 ## Endpoints
 
-- `GET /health`: full application health summary, including dependency checks.
-- `GET /health/live`: liveness probe for the running Node.js process.
-- `GET /health/ready`: readiness probe for serving traffic, including dependency checks.
+- `GET /api/v1/health`: full application health summary, including dependency checks.
+- `GET /api/v1/health/live`: liveness probe for the running Node.js process.
+- `GET /api/v1/health/ready`: readiness probe for serving traffic, including dependency checks.
 
 These endpoints are intentionally public and must not require authentication. Infrastructure systems need to call them before user authentication, during deploys, and while recovering from incidents.
 
 ## Full Health Response
 
-`GET /health` returns `200 OK` when the application and dependencies are healthy:
+`GET /api/v1/health` returns `200 OK` when the application and dependencies are healthy:
 
 ```json
 {
@@ -60,14 +60,14 @@ The application does not crash when a dependency is unavailable. The health serv
 
 ## Liveness
 
-Use `GET /health/live` for Kubernetes liveness probes or equivalent process-level checks. This endpoint verifies that the NestJS process can respond and does not perform database or Redis calls.
+Use `GET /api/v1/health/live` for Kubernetes liveness probes or equivalent process-level checks. This endpoint verifies that the NestJS process can respond and does not perform database or Redis calls.
 
 Example Kubernetes liveness probe:
 
 ```yaml
 livenessProbe:
   httpGet:
-    path: /health/live
+    path: /api/v1/health/live
     port: 3000
   initialDelaySeconds: 10
   periodSeconds: 30
@@ -75,14 +75,14 @@ livenessProbe:
 
 ## Readiness
 
-Use `GET /health/ready` for Kubernetes readiness probes, deployment rollout checks, and load balancer target health. This endpoint includes PostgreSQL and Redis connectivity checks.
+Use `GET /api/v1/health/ready` for Kubernetes readiness probes, deployment rollout checks, and load balancer target health. This endpoint includes PostgreSQL and Redis connectivity checks.
 
 Example Kubernetes readiness probe:
 
 ```yaml
 readinessProbe:
   httpGet:
-    path: /health/ready
+    path: /api/v1/health/ready
     port: 3000
   initialDelaySeconds: 5
   periodSeconds: 10
