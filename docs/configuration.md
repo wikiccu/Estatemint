@@ -22,21 +22,34 @@ Create a local `.env` file from the example file:
 cp .env.example .env
 ```
 
-Then update values as needed for your local machine:
+The checked-in `.env.example` is optimized for Docker Compose, where the API container reaches infrastructure through Docker service names:
 
 ```dotenv
 NODE_ENV=development
 PORT=3000
 
-DATABASE_HOST=localhost
+DATABASE_HOST=postgres
 DATABASE_PORT=5432
-DATABASE_NAME=app_db
+DATABASE_NAME=estatemint
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres
 
-REDIS_HOST=localhost
+REDIS_HOST=redis
 REDIS_PORT=6379
 ```
+
+Use these values when running the full stack with Docker Compose.
+
+If you run the NestJS app directly on your host machine with `npm run start:dev` while PostgreSQL and Redis are still provided by Docker Compose, change only the host values in your local `.env`:
+
+```dotenv
+DATABASE_HOST=localhost
+REDIS_HOST=localhost
+```
+
+Keep `DATABASE_NAME=estatemint` so it matches the PostgreSQL database created by `docker-compose.yml`.
+
+Docker Compose also sets container-only host overrides for the API service, so the app container always reaches `postgres` and `redis` through the Docker network even if your private `.env` uses `localhost` for host-based development.
 
 The `.env` file is intentionally not committed. Keep real credentials in local environment files, deployment secrets, or platform-managed secret stores.
 

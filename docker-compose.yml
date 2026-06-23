@@ -9,6 +9,10 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_NAME: estatemint
+      REDIS_HOST: redis
     depends_on:
       postgres:
         condition: service_healthy

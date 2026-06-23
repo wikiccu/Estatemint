@@ -19,11 +19,17 @@ EstateMint aims to become a trusted digital infrastructure for real estate trans
 - TypeScript
 - Monorepo Architecture
 
+## Runtime Requirements
+
+- Node.js 22 or newer
+- npm 10 or newer
+- Docker and Docker Compose for containerized local development
+
 ## Configuration
 
 EstateMint uses a global NestJS configuration module backed by `@nestjs/config` and Joi validation. Environment variables are loaded during application bootstrap and validated before the server starts, so missing or invalid infrastructure settings fail fast.
 
-For local development, copy `.env.example` to `.env` and adjust the values for your machine. See [docs/configuration.md](docs/configuration.md) for the full configuration workflow, validation rules, and guidance for adding new environment variables.
+For Docker Compose development, copy `.env.example` to `.env` and run the stack. The example file uses Docker service hostnames such as `postgres` and `redis`. If you run the NestJS app directly on your host machine while keeping PostgreSQL and Redis in Docker, use `localhost` for those host values instead. See [docs/configuration.md](docs/configuration.md) for the full configuration workflow, validation rules, and guidance for adding new environment variables.
 
 ## Health Checks
 
