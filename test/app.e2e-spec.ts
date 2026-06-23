@@ -2,9 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { configureApiStandards } from './../src/api-standards';
 import { AppModule } from './../src/app.module';
 import { HealthService } from './../src/modules/health/health.service';
 import type { HealthResponse } from './../src/modules/health/health.service';
+
+interface ApiErrorResponse {
+  statusCode: number;
+  error: string;
+  message: string;
+  path: string;
+  timestamp: string;
+}
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -48,19 +57,28 @@ describe('AppController (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    configureApiStandards(app);
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/api/v1 (GET)', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/api/v1')
       .expect(200)
-      .expect('Hello World!');
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          name: 'EstateMint API',
+          version: '0.0.1',
+          status: 'ok',
+          docs: '/docs',
+          health: '/api/v1/health',
+        });
+      });
   });
 
-  it('/health (GET)', () => {
+  it('/api/v1/health (GET)', () => {
     return request(app.getHttpServer())
-      .get('/health')
+      .get('/api/v1/health')
       .expect(200)
       .expect(({ body }) => {
         const healthBody = body as HealthResponse;
@@ -72,6 +90,24 @@ describe('AppController (e2e)', () => {
         expect(healthBody.version).toBe('0.0.1');
         expect(healthBody.checks.database.status).toBe('up');
         expect(healthBody.checks.redis.status).toBe('up');
+      });
+  });
+
+  it('/api/v1/missing (GET) returns the standard error shape', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/missing')
+      .expect(404)
+      .expect(({ body }) => {
+        const errorBody = body as ApiErrorResponse;
+
+        expect(errorBody).toEqual({
+          statusCode: 404,
+          error: 'Not Found',
+          message: 'Cannot GET /api/v1/missing',
+          path: '/api/v1/missing',
+          timestamp: errorBody.timestamp,
+        });
+        expect(typeof errorBody.timestamp).toBe('string');
       });
   });
 

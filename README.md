@@ -31,13 +31,17 @@ EstateMint uses a global NestJS configuration module backed by `@nestjs/config` 
 
 For Docker Compose development, copy `.env.example` to `.env` and run the stack. The example file uses Docker service hostnames such as `postgres` and `redis`. If you run the NestJS app directly on your host machine while keeping PostgreSQL and Redis in Docker, use `localhost` for those host values instead. See [docs/configuration.md](docs/configuration.md) for the full configuration workflow, validation rules, and guidance for adding new environment variables.
 
+## API Standards
+
+Application routes are versioned under `/api/v1`, while Swagger is available at `/docs`. Global validation and error formatting are configured during bootstrap so modules share the same request and response behavior. See [docs/api-standards.md](docs/api-standards.md) for the details.
+
 ## Health Checks
 
 EstateMint exposes public health endpoints for operations and monitoring:
 
-- `GET /health`
-- `GET /health/live`
-- `GET /health/ready`
+- `GET /api/v1/health`
+- `GET /api/v1/health/live`
+- `GET /api/v1/health/ready`
 
 These endpoints are designed for Docker, Kubernetes, load balancers, and external monitoring systems. See [docs/health-checks.md](docs/health-checks.md) for response examples and probe guidance.
 
