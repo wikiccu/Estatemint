@@ -26,6 +26,15 @@ Responsibilities:
 - Password reset and account lifecycle management
 - Session caching using Redis
 
+### Users
+
+Responsibilities:
+
+- Provide the internal user domain foundation used by future authentication and authorization flows.
+- Encapsulate user persistence behind a repository so feature modules do not query Prisma directly.
+- Return safe user objects by default so password hashes do not leak into service responses.
+- Support foundational operations such as lookup, creation, updates, and deactivation.
+
 ### Property
 
 Responsibilities:

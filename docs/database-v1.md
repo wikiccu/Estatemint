@@ -44,6 +44,8 @@ Important fields:
 - `role` uses `UserRole`.
 - `isActive` supports account disabling without deleting data.
 
+The NestJS users foundation exposes safe user objects that omit `passwordHash` by default. Future authentication code may request internal password data deliberately, but normal service responses should not carry credential material.
+
 ### Property
 
 Represents a real estate listing.

@@ -12,6 +12,7 @@ EstateMint is organized into eight phases that build from foundation to scale. E
 
 ## Phase 2: Authentication
 
+- Build the internal Users module foundation before exposing authentication endpoints.
 - Implement secure registration and login flows.
 - Add role-based access controls for buyer, seller, agent, and admin personas.
 - Support JWT sessions and Redis-backed session management.
