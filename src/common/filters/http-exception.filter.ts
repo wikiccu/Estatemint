@@ -23,8 +23,21 @@ interface ApiErrorResponse {
   errors?: unknown;
 }
 
+interface OperationalHealthResponse {
+  status: string;
+  checks: unknown;
+}
+
 const isErrorBody = (value: unknown): value is ErrorBody =>
   typeof value === 'object' && value !== null;
+
+const isOperationalHealthResponse = (
+  value: unknown,
+): value is OperationalHealthResponse =>
+  typeof value === 'object' &&
+  value !== null &&
+  'status' in value &&
+  'checks' in value;
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -38,6 +51,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         : HttpStatus.INTERNAL_SERVER_ERROR;
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : undefined;
+
+    if (isOperationalHealthResponse(exceptionResponse)) {
+      response.status(statusCode).json(exceptionResponse);
+      return;
+    }
+
     const body = isErrorBody(exceptionResponse) ? exceptionResponse : undefined;
     const message =
       body?.message ??

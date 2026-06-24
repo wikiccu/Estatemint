@@ -7,6 +7,18 @@ import { AppModule } from './../src/app.module';
 import { HealthService } from './../src/modules/health/health.service';
 import type { HealthResponse } from './../src/modules/health/health.service';
 
+const healthyResponse: HealthResponse = {
+  status: 'ok',
+  timestamp: '2026-06-18T12:00:00.000Z',
+  uptime: 1234,
+  environment: 'test',
+  version: '0.0.1',
+  checks: {
+    database: { status: 'up' },
+    redis: { status: 'up' },
+  },
+};
+
 interface ApiErrorResponse {
   statusCode: number;
   error: string;
@@ -17,35 +29,18 @@ interface ApiErrorResponse {
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
+  let healthResponse: HealthResponse;
 
   beforeEach(async () => {
+    healthResponse = healthyResponse;
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(HealthService)
       .useValue({
-        getHealth: jest.fn().mockResolvedValue({
-          status: 'ok',
-          timestamp: '2026-06-18T12:00:00.000Z',
-          uptime: 1234,
-          environment: 'test',
-          version: '0.0.1',
-          checks: {
-            database: { status: 'up' },
-            redis: { status: 'up' },
-          },
-        }),
-        getReadiness: jest.fn().mockResolvedValue({
-          status: 'ok',
-          timestamp: '2026-06-18T12:00:00.000Z',
-          uptime: 1234,
-          environment: 'test',
-          version: '0.0.1',
-          checks: {
-            database: { status: 'up' },
-            redis: { status: 'up' },
-          },
-        }),
+        getHealth: jest.fn().mockImplementation(() => healthResponse),
+        getReadiness: jest.fn().mockImplementation(() => healthResponse),
         getLiveness: jest.fn().mockReturnValue({
           status: 'ok',
           timestamp: '2026-06-18T12:00:00.000Z',
@@ -89,6 +84,31 @@ describe('AppController (e2e)', () => {
         expect(healthBody.environment).toBe('test');
         expect(healthBody.version).toBe('0.0.1');
         expect(healthBody.checks.database.status).toBe('up');
+        expect(healthBody.checks.redis.status).toBe('up');
+      });
+  });
+
+  it('/api/v1/health (GET) returns degraded health details with 503', () => {
+    healthResponse = {
+      ...healthyResponse,
+      status: 'degraded',
+      checks: {
+        database: { status: 'down', message: 'Connection refused' },
+        redis: { status: 'up' },
+      },
+    };
+
+    return request(app.getHttpServer())
+      .get('/api/v1/health')
+      .expect(503)
+      .expect(({ body }) => {
+        const healthBody = body as HealthResponse;
+
+        expect(healthBody.status).toBe('degraded');
+        expect(healthBody.checks.database).toEqual({
+          status: 'down',
+          message: 'Connection refused',
+        });
         expect(healthBody.checks.redis.status).toBe('up');
       });
   });
