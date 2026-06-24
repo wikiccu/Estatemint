@@ -21,8 +21,8 @@ Key characteristics:
 Responsibilities:
 
 - User registration and login
-- JWT authentication and refresh tokens
-- Role-based authorization
+- JWT access token authentication
+- Role-aware JWT payloads for future authorization
 - Password reset and account lifecycle management
 - Session caching using Redis
 

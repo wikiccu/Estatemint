@@ -57,6 +57,15 @@ describe('UsersService', () => {
     expect(result).not.toHaveProperty('passwordHash');
   });
 
+  it('finds a user by email for auth with passwordHash included', async () => {
+    repository.findByEmail.mockResolvedValue(user);
+
+    const result = await service.findByEmailForAuth(user.email);
+
+    expect(result).toEqual(user);
+    expect(result?.passwordHash).toBe(user.passwordHash);
+  });
+
   it('creates a user when email is available', async () => {
     const createUserDto: CreateUserDto = {
       email: 'buyer@estatemint.local',

@@ -50,6 +50,16 @@ Common commands:
 
 Migrations and seeding require a running PostgreSQL database. See [docs/database-v1.md](docs/database-v1.md) for schema design, local setup notes, and seed data details.
 
+## Authentication
+
+EstateMint supports registration, login, and authenticated current-user lookup through JWT access tokens:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+
+Passwords are hashed with bcrypt and safe user responses never include `passwordHash`. See [docs/authentication.md](docs/authentication.md) for endpoint examples and JWT configuration notes.
+
 ## Health Checks
 
 EstateMint exposes public health endpoints for operations and monitoring:

@@ -7,6 +7,7 @@ EstateMint uses `@nestjs/config` as a dedicated, global configuration layer. The
 Configuration lives under `src/config/`:
 
 - `app.config.ts`: application runtime settings such as `NODE_ENV` and `PORT`.
+- `auth.config.ts`: JWT authentication settings.
 - `database.config.ts`: PostgreSQL connection settings.
 - `redis.config.ts`: Redis connection settings.
 - `env.validation.ts`: Joi schema for required environment variables.
@@ -27,6 +28,8 @@ The checked-in `.env.example` is optimized for Docker Compose, where the API con
 ```dotenv
 NODE_ENV=development
 PORT=3000
+JWT_SECRET=replace-with-a-long-random-secret-at-least-32-characters
+JWT_EXPIRES_IN=15m
 
 DATABASE_HOST=postgres
 DATABASE_PORT=5432
@@ -67,6 +70,8 @@ Validation currently requires:
 
 - `NODE_ENV`: one of `development`, `test`, or `production`.
 - `PORT`: valid TCP port.
+- `JWT_SECRET`: secret key used to sign JWT access tokens.
+- `JWT_EXPIRES_IN`: JWT access token lifetime, such as `15m`.
 - `DATABASE_HOST`: PostgreSQL hostname.
 - `DATABASE_PORT`: valid TCP port.
 - `DATABASE_NAME`: PostgreSQL database name.
