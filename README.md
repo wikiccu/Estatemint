@@ -35,6 +35,21 @@ For Docker Compose development, copy `.env.example` to `.env` and run the stack.
 
 Application routes are versioned under `/api/v1`, while Swagger is available at `/docs`. Global validation and error formatting are configured during bootstrap so modules share the same request and response behavior. See [docs/api-standards.md](docs/api-standards.md) for the details.
 
+## Database
+
+EstateMint uses Prisma with PostgreSQL. The application keeps split database environment variables for operational checks and Docker readability, while Prisma uses `DATABASE_URL` directly.
+
+Common commands:
+
+- `npm run prisma:generate`
+- `npm run prisma:migrate:dev`
+- `npm run prisma:migrate:deploy`
+- `npm run prisma:migrate:status`
+- `npm run prisma:seed`
+- `npm run prisma:studio`
+
+Migrations and seeding require a running PostgreSQL database. See [docs/database-v1.md](docs/database-v1.md) for schema design, local setup notes, and seed data details.
+
 ## Health Checks
 
 EstateMint exposes public health endpoints for operations and monitoring:

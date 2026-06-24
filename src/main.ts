@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import packageJson from '../package.json';
 import { configureApiStandards } from './api-standards';
 import { AppModule } from './app.module';
-import { API_PREFIX, SWAGGER_PATH } from './common/constants/api.constants';
+import { SWAGGER_PATH } from './common/constants/api.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,7 +16,6 @@ async function bootstrap() {
     .setTitle('EstateMint API')
     .setDescription('EstateMint backend API documentation')
     .setVersion(packageJson.version)
-    .addServer(`/${API_PREFIX}`)
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 

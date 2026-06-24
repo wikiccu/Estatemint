@@ -1,103 +1,144 @@
 # EstateMint Database v1
 
-This document describes the initial database design for EstateMint. The schema is optimized for a modular monolith and prepares the platform for future growth.
+EstateMint uses PostgreSQL with Prisma as the database toolkit. This gives the project a typed schema, versioned migrations, generated TypeScript client, and a repeatable seed workflow.
 
-## Initial Entities
+## Connection Model
+
+The application keeps two forms of database configuration:
+
+- Split variables such as `DATABASE_HOST`, `DATABASE_PORT`, and `DATABASE_NAME`.
+- `DATABASE_URL`, consumed directly by Prisma.
+
+The split variables are still useful for Docker Compose readability and health checks. `DATABASE_URL` is configured directly because Prisma CLI commands, Prisma Client, Prisma Studio, and migrations all expect a single connection URL.
+
+Docker Compose value:
+
+```dotenv
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/estatemint?schema=public
+```
+
+Host-machine value when running NestJS directly:
+
+```dotenv
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/estatemint?schema=public
+```
+
+## Prisma Files
+
+- `prisma/schema.prisma`: source of truth for models, enums, relations, indexes, and constraints.
+- `prisma/migrations/20260624000000_init_database_schema/migration.sql`: initial SQL migration.
+- `prisma/seed.ts`: sample development data.
+- `src/database/database.module.ts`: NestJS database module.
+- `src/database/prisma.service.ts`: reusable Prisma Client provider.
+
+## Models
 
 ### User
 
-Represents platform participants and access control identities.
+Represents platform identities for buyers, sellers, agents, and admins.
 
-Fields:
+Important fields:
 
-- `id`: UUID, primary key
-- `email`: string, unique, required
-- `passwordHash`: string, required
-- `firstName`: string
-- `lastName`: string
-- `role`: enum(`buyer`, `seller`, `agent`, `admin`)
-- `status`: enum(`active`, `inactive`, `suspended`)
-- `createdAt`: timestamp
-- `updatedAt`: timestamp
-- `profileData`: JSONB, optional profile metadata
+- `email` is unique.
+- `passwordHash` stores hashed passwords only.
+- `role` uses `UserRole`.
+- `isActive` supports account disabling without deleting data.
 
 ### Property
 
-Represents a real estate listing that can be created by sellers or agents.
+Represents a real estate listing.
 
-Fields:
+Important fields:
 
-- `id`: UUID, primary key
-- `ownerId`: UUID, foreign key to `User.id`
-- `agentId`: UUID, foreign key to `User.id`, nullable
-- `title`: string, required
-- `description`: text
-- `price`: decimal
-- `currency`: string, default `USD`
-- `propertyType`: enum(`house`, `apartment`, `condo`, `land`, `commercial`)
-- `status`: enum(`draft`, `active`, `pending`, `sold`, `archived`)
-- `address`: string
-- `city`: string
-- `state`: string
-- `postalCode`: string
-- `country`: string
-- `bedrooms`: integer
-- `bathrooms`: integer
-- `squareFeet`: integer
-- `lotSize`: decimal, nullable
-- `yearBuilt`: integer, nullable
-- `listingMetadata`: JSONB
-- `createdAt`: timestamp
-- `updatedAt`: timestamp
+- `ownerId` links each property to a user.
+- `price` uses a decimal column for money-safe storage.
+- `currency`, `type`, and `status` use enums for consistent filtering.
+- `city`, `price`, `type`, `status`, and `ownerId` are indexed for common listing queries.
 
 ### PropertyImage
 
-Stores image records for each property listing.
-
-Fields:
-
-- `id`: UUID, primary key
-- `propertyId`: UUID, foreign key to `Property.id`
-- `url`: string, required
-- `altText`: string
-- `order`: integer, default 0
-- `isPrimary`: boolean, default false
-- `createdAt`: timestamp
+Stores ordered image metadata for properties. Images cascade when a property is deleted.
 
 ### Favorite
 
-Captures user favorites and watchlist items.
+Connects users to saved properties. The pair `userId + propertyId` is unique so a user cannot favorite the same property twice.
 
-Fields:
+### Appointment
 
-- `id`: UUID, primary key
-- `userId`: UUID, foreign key to `User.id`
-- `propertyId`: UUID, foreign key to `Property.id`
-- `createdAt`: timestamp
+Stores visit requests for properties. Appointments include a scheduled time, status, optional message, and relations to both user and property.
 
-## Relationships
+## Enums
 
-- `User` has many `Property` through `ownerId`.
-- `User` may be assigned to many `Property` entities as `agentId`.
-- `Property` has many `PropertyImage` records.
-- `User` has many `Favorite` records.
-- `Property` has many `Favorite` records.
+- `UserRole`: `BUYER`, `SELLER`, `AGENT`, `ADMIN`
+- `Currency`: `USD`, `EUR`, `GBP`
+- `PropertyType`: `HOUSE`, `APARTMENT`, `CONDO`, `TOWNHOUSE`, `LAND`, `COMMERCIAL`
+- `PropertyStatus`: `DRAFT`, `ACTIVE`, `PENDING`, `SOLD`, `ARCHIVED`
+- `AppointmentStatus`: `REQUESTED`, `CONFIRMED`, `CANCELLED`, `COMPLETED`
 
-### Referential integrity
+## Migrations
 
-- Deleting a `User` should be handled carefully. Use soft delete or status flags for user accounts rather than cascading deletes.
-- Deleting a `Property` should remove associated `PropertyImage` records and preserve historical data in analytics tables.
+Run a development migration after PostgreSQL is available:
 
-## Future Entities
+```bash
+npm run prisma:migrate:dev
+```
 
-The first version focuses on the core marketplace data model. Future additions include:
+Apply committed migrations in production or CI-like environments:
 
-- `Inquiry`: buyer inquiries and lead capture data.
-- `ListingStatusHistory`: an audit trail for property status changes.
-- `Notification`: persisted notification events and delivery state.
-- `SearchIndex`: materialized search records or denormalized search documents.
-- `AnalyticsEvent`: market activity and engagement telemetry.
-- `Subscription`: notification and communication preferences.
-- `AuditLog`: platform-wide operational history for security and compliance.
+```bash
+npm run prisma:migrate:deploy
+```
 
-The v1 schema is intentionally narrow to keep the MVP focused while enabling safe expansion into richer data domains.
+Check migration status:
+
+```bash
+npm run prisma:migrate:status
+```
+
+Migration commands require a reachable PostgreSQL database. If Docker Desktop is not running, Prisma can still validate and generate, but migration status/apply commands will fail to connect.
+
+## Prisma Client
+
+Generate Prisma Client after schema changes:
+
+```bash
+npm run prisma:generate
+```
+
+The generated client is used by `PrismaService` and future feature modules.
+
+## Seed Data
+
+Seed the database after migrations:
+
+```bash
+npm run prisma:seed
+```
+
+The seed creates:
+
+- one admin user
+- one agent user
+- one buyer user
+- sample properties
+- sample property images
+- a favorite
+- an appointment request
+
+There is no auth module yet, so the seed hashes a temporary development password with `bcrypt` directly. Once authentication is implemented, password hashing should move behind an application-owned auth/password utility.
+
+Development seed password:
+
+```text
+Password123!
+```
+
+## Prisma Studio
+
+Open Prisma Studio for local inspection:
+
+```bash
+npm run prisma:studio
+```
+
+Use Studio only for local development and debugging, not as an operational admin interface.

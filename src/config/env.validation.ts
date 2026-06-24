@@ -8,6 +8,9 @@ export const envValidationSchema = Joi.object({
   DATABASE_NAME: Joi.string().required(),
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql', 'postgres'] })
+    .required(),
   REDIS_HOST: Joi.string().hostname().required(),
   REDIS_PORT: Joi.number().port().required(),
 });
