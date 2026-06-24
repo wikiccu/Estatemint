@@ -33,6 +33,7 @@ DATABASE_PORT=5432
 DATABASE_NAME=estatemint
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/estatemint?schema=public
 
 REDIS_HOST=redis
 REDIS_PORT=6379
@@ -44,10 +45,13 @@ If you run the NestJS app directly on your host machine with `npm run start:dev`
 
 ```dotenv
 DATABASE_HOST=localhost
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/estatemint?schema=public
 REDIS_HOST=localhost
 ```
 
 Keep `DATABASE_NAME=estatemint` so it matches the PostgreSQL database created by `docker-compose.yml`.
+
+`DATABASE_URL` is configured directly rather than derived in application code. Prisma expects a single connection URL for migrations, client generation, Studio, and runtime database access. The split variables remain useful for Docker readability and low-level health checks.
 
 Docker Compose also sets container-only host overrides for the API service, so the app container always reaches `postgres` and `redis` through the Docker network even if your private `.env` uses `localhost` for host-based development.
 
@@ -68,6 +72,7 @@ Validation currently requires:
 - `DATABASE_NAME`: PostgreSQL database name.
 - `DATABASE_USER`: PostgreSQL username.
 - `DATABASE_PASSWORD`: PostgreSQL password.
+- `DATABASE_URL`: PostgreSQL connection URL consumed by Prisma.
 - `REDIS_HOST`: Redis hostname.
 - `REDIS_PORT`: valid TCP port.
 
