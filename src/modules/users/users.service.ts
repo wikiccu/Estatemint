@@ -6,7 +6,11 @@ import {
 import { Prisma } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { SafeUser, toSafeUser } from './types/safe-user.type';
+import {
+  SafeUser,
+  toSafeUser,
+  UserWithPasswordHash,
+} from './types/safe-user.type';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
@@ -23,6 +27,12 @@ export class UsersService {
     const user = await this.usersRepository.findByEmail(email);
 
     return user === null ? null : toSafeUser(user);
+  }
+
+  async findByEmailForAuth(
+    email: string,
+  ): Promise<UserWithPasswordHash | null> {
+    return this.usersRepository.findByEmail(email);
   }
 
   async createUser(data: CreateUserDto): Promise<SafeUser> {

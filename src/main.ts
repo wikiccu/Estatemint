@@ -16,6 +16,7 @@ async function bootstrap() {
     .setTitle('EstateMint API')
     .setDescription('EstateMint backend API documentation')
     .setVersion(packageJson.version)
+    .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 

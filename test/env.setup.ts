@@ -1,5 +1,7 @@
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3000';
+process.env.JWT_SECRET = 'test-jwt-secret-with-at-least-32-characters';
+process.env.JWT_EXPIRES_IN = '15m';
 process.env.DATABASE_HOST = 'localhost';
 process.env.DATABASE_PORT = '5432';
 process.env.DATABASE_NAME = 'app_db';
