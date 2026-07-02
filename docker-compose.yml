@@ -1,27 +1,4 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: estatemint-api
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    environment:
-      DATABASE_HOST: postgres
-      DATABASE_NAME: estatemint
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/estatemint?schema=public
-      REDIS_HOST: redis
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - estatemint-network
-
   postgres:
     image: postgres:17-alpine
     container_name: estatemint-postgres
