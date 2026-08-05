@@ -2,7 +2,7 @@
 
 ## MVP Scope
 
-The EstateMint MVP will deliver the essential marketplace functionality required for property discovery, listing management, and user engagement. It will focus on a stable modular monolith architecture that supports the most valuable real estate scenarios while avoiding unnecessary complexity.
+The EstateMint MVP delivers the essential marketplace functionality required for property discovery, listing management, and user engagement. It uses a Next.js frontend and a stable NestJS modular monolith while avoiding unnecessary complexity.
 
 ## User Roles
 
@@ -14,13 +14,13 @@ The EstateMint MVP will deliver the essential marketplace functionality required
 ## Core Features
 
 - Secure authentication with role-based access controls.
-- Property listing management: create, edit, publish, and archive listings.
+- Property listing management APIs: create, edit, publish, and archive listings; the current dashboard exposes publishing and archival.
 - Rich property data model including title, description, price, location, status, and metadata.
 - Property image support with ordering and thumbnail management.
 - Search and filter capabilities by location, price range, property type, and status.
 - Favorites: save and revisit properties.
-- Basic notification hooks for listing updates and inquiry alerts.
-- Administrative dashboard foundations for workflow visibility.
+- Tour request creation and user-scoped activity dashboards.
+- Netlify-ready frontend deployment and independently deployable API infrastructure.
 
 ## Out-of-Scope Features
 

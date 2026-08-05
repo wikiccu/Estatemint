@@ -1,113 +1,273 @@
 # EstateMint
 
-EstateMint is an open-source real estate marketplace platform designed to modernize property discovery, listing, and transaction workflows. We are building EstateMint publicly to showcase product strategy, software architecture, and scalable platform design for residential and commercial real estate markets.
+EstateMint is a full-stack real estate marketplace for discovering active properties, building a personal shortlist, requesting tours, and publishing listings. It pairs a responsive Next.js application with a modular NestJS API and is structured for a Netlify frontend plus a separately hosted API.
 
-## Project Overview
+![EstateMint social preview](apps/web/public/og.png)
 
-EstateMint is a digital marketplace tailored for property buyers, sellers, real estate agents, and administrators. It combines modern web architecture, a scalable backend foundation, and thoughtful domain design to support the full lifecycle of property marketing and discovery.
+## Features
 
-## Vision Summary
+- Search active properties by keyword, city, type, price, bedrooms, and sort order
+- View pricing, property facts, photography, ownership context, and listing details
+- Register, sign in, restore a session, sign out, and handle expired JWTs
+- Save and remove favorite properties
+- Request a future tour and review tour status from a personal dashboard
+- Publish and archive listings as a seller, agent, or administrator
+- Enforce listing ownership and role permissions in the API
+- Browse responsive loading, empty, validation, success, error, and not-found states
+- Inspect the live OpenAPI documentation at `/docs` on the API host
 
-EstateMint aims to become a trusted digital infrastructure for real estate transactions by delivering a secure, transparent, and high-performance marketplace experience. We are focused on engineering a platform that is easy to extend, easy to maintain, and capable of evolving from a monolith into a distributed system as demand grows.
+## Technology stack
 
-## Tech Stack
+| Area | Technology |
+| --- | --- |
+| Frontend | Next.js 16 App Router, React 19, TypeScript, CSS |
+| API | NestJS 11, Passport JWT, Swagger/OpenAPI |
+| Data | PostgreSQL 17, Prisma 7 |
+| Infrastructure | Redis 8, Docker Compose |
+| Quality | ESLint, Prettier, Jest, Supertest, Vitest, GitHub Actions |
+| Frontend hosting | Netlify with its OpenNext adapter |
 
-- NestJS
-- PostgreSQL
-- Redis
-- Docker
-- TypeScript
-- Monorepo Architecture
+## Architecture
 
-## Runtime Requirements
+EstateMint is an npm-workspace monorepo. The API remains at the repository root to preserve the original NestJS history, while the Next.js application lives in `apps/web`.
+
+```text
+.
+├── apps/web/                  # Next.js frontend
+│   ├── public/                # Public assets and social card
+│   └── src/
+│       ├── app/               # App Router pages and layouts
+│       ├── components/        # Reusable product UI
+│       ├── lib/               # API client and format helpers
+│       └── types/             # Frontend API contracts
+├── prisma/                    # Schema, migrations, and development seed
+├── src/                       # NestJS API
+│   ├── common/                # Error and validation standards
+│   ├── config/                # Validated environment configuration
+│   ├── database/              # Prisma lifecycle integration
+│   └── modules/               # Auth, users, properties, favorites, tours, health
+├── test/                      # API integration tests
+├── docs/                      # Product and API architecture notes
+├── .github/workflows/ci.yml   # Pull-request and main-branch validation
+└── netlify.toml               # Netlify frontend build settings
+```
+
+The browser calls the API through `NEXT_PUBLIC_API_BASE_URL`. JWT access tokens are held in memory and mirrored to `sessionStorage` for tab-scoped persistence, then sent only through the `Authorization` header. The backend should be deployed as a conventional long-running Node service; it is not packaged as a Netlify Function.
+
+## Requirements
 
 - Node.js 22 or newer
 - npm 10 or newer
-- Docker and Docker Compose for containerized local development
+- Docker and Docker Compose for local PostgreSQL and Redis
 
-## Configuration
+## Local setup
 
-EstateMint uses a global NestJS configuration module backed by `@nestjs/config` and Joi validation. Environment variables are loaded during application bootstrap and validated before the server starts, so missing or invalid infrastructure settings fail fast.
+1. Install dependencies from the repository root:
 
-For Docker Compose development, copy `.env.example` to `.env` and run the stack. The example file uses Docker service hostnames such as `postgres` and `redis`. If you run the NestJS app directly on your host machine while keeping PostgreSQL and Redis in Docker, use `localhost` for those host values instead. See [docs/configuration.md](docs/configuration.md) for the full configuration workflow, validation rules, and guidance for adding new environment variables.
+   ```bash
+   npm ci
+   ```
 
-## API Standards
+2. Create local environment files:
 
-Application routes are versioned under `/api/v1`, while Swagger is available at `/docs`. Global validation and error formatting are configured during bootstrap so modules share the same request and response behavior. See [docs/api-standards.md](docs/api-standards.md) for the details.
+   ```bash
+   cp .env.example .env
+   cp apps/web/.env.example apps/web/.env.local
+   ```
 
-## Database
+3. When the API runs on the host, change `DATABASE_HOST`, `DATABASE_URL`, and `REDIS_HOST` in `.env` from the Docker service names to `localhost`.
 
-EstateMint uses Prisma with PostgreSQL. The application keeps split database environment variables for operational checks and Docker readability, while Prisma uses `DATABASE_URL` directly.
+4. Start PostgreSQL and Redis:
 
-Common commands:
+   ```bash
+   docker compose up -d
+   ```
 
-- `npm run prisma:generate`
-- `npm run prisma:migrate:dev`
-- `npm run prisma:migrate:deploy`
-- `npm run prisma:migrate:status`
-- `npm run prisma:seed`
-- `npm run prisma:studio`
+5. Generate the Prisma client, apply migrations, and add development data:
 
-Migrations and seeding require a running PostgreSQL database. See [docs/database-v1.md](docs/database-v1.md) for schema design, local setup notes, and seed data details.
+   ```bash
+   npm run prisma:generate
+   npm run prisma:migrate:deploy
+   npm run prisma:seed
+   ```
 
-## Authentication
+6. Start both applications:
 
-EstateMint supports registration, login, and authenticated current-user lookup through JWT access tokens:
+   ```bash
+   npm run dev
+   ```
 
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me`
+The frontend runs at `http://localhost:3001`, the API at `http://localhost:3000/api/v1`, and Swagger at `http://localhost:3000/docs`.
 
-Passwords are hashed with bcrypt and safe user responses never include `passwordHash`. See [docs/authentication.md](docs/authentication.md) for endpoint examples and JWT configuration notes.
+### Safe development accounts
 
-## Health Checks
+The development seed creates buyer, agent, and administrator accounts with the password `Password123!`. These credentials are development-only and must never be used in production.
 
-EstateMint exposes public health endpoints for operations and monitoring:
+| Role | Email |
+| --- | --- |
+| Buyer | `buyer@estatemint.local` |
+| Agent | `agent@estatemint.local` |
+| Administrator | `admin@estatemint.local` |
 
-- `GET /api/v1/health`
-- `GET /api/v1/health/live`
-- `GET /api/v1/health/ready`
+## Environment variables
 
-These endpoints are designed for Docker, Kubernetes, load balancers, and external monitoring systems. See [docs/health-checks.md](docs/health-checks.md) for response examples and probe guidance.
+### API (`.env`)
 
-## High-Level Architecture
+| Variable | Purpose |
+| --- | --- |
+| `NODE_ENV` | `development`, `test`, or `production` |
+| `PORT` | API listening port |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins; include the final Netlify origin |
+| `JWT_SECRET` | Private JWT signing secret with at least 32 characters |
+| `JWT_EXPIRES_IN` | Access-token lifetime such as `15m` |
+| `DATABASE_HOST` | PostgreSQL host used by health checks |
+| `DATABASE_PORT` | PostgreSQL port |
+| `DATABASE_NAME` | PostgreSQL database name |
+| `DATABASE_USER` | PostgreSQL user |
+| `DATABASE_PASSWORD` | PostgreSQL password |
+| `DATABASE_URL` | Prisma PostgreSQL connection URL |
+| `REDIS_HOST` | Redis host used by health checks |
+| `REDIS_PORT` | Redis port |
 
-EstateMint starts as a modular monolith with clear domain boundaries. Core modules include:
+### Frontend (`apps/web/.env.local` or Netlify)
 
-- Authentication & authorization
-- Property management
-- Search and discovery
-- Favorites and saved items
-- Notifications
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Yes | Full public API prefix, for example `https://YOUR-BACKEND-DOMAIN.example.com/api/v1` |
+| `NEXT_PUBLIC_SITE_URL` | Production | Canonical frontend URL used for absolute social metadata |
 
-The architecture is intentionally designed to support future extraction into microservices and federated APIs.
+Never commit real secrets. All `.env` and local/production variants are ignored; the committed example files contain development values or safe placeholders only.
 
-## Development Philosophy
+## Database and migrations
 
-- Domain-first design: Build features around clear user roles and business workflows.
-- Incremental scaling: Ship a high-quality modular monolith, then extract services as needed.
-- Public iteration: Document technical decisions openly and welcome contribution from the community.
-- Reliability mindset: Prioritize data integrity, security, and predictable behavior.
+The initial migration defines users, properties, property images, favorites, and appointments. Apply committed migrations in production with:
 
-## Roadmap Summary
+```bash
+npm run prisma:migrate:deploy
+```
 
-EstateMint will evolve through a sequence of foundational phases:
+Use `npm run prisma:migrate:dev` only when authoring a migration locally. The seed is idempotent for its sample users and property titles, and is intended for local demonstrations rather than production.
 
-1. Foundation: Establish project structure, core database models, and developer environment.
-2. Authentication: Implement secure sign-up, sign-in, and role-based access control.
-3. Property Management: Build property creation, listing, and lifecycle workflows.
-4. Search: Add faceted search, filtering, and relevance ranking.
-5. Favorites: Enable users to save and revisit properties.
-6. Notifications: Provide event-driven notifications and alerts.
-7. Analytics: Capture marketplace metrics and usage insights.
-8. Scaling & Infrastructure: Harden deployment, observability, and horizontal scaling.
+See [database notes](docs/database-v1.md) for the domain model and constraints.
 
-## Contribution
+## Commands
 
-EstateMint is built to be open and collaborative.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Run API and frontend together |
+| `npm run dev:api` | Run only NestJS in watch mode |
+| `npm run dev:web` | Run only Next.js on port 3001 |
+| `npm run build` | Build API and frontend |
+| `npm run build:api` | Build only the API |
+| `npm run build:web` | Build only the frontend |
+| `npm run lint` | Lint both applications without rewriting files |
+| `npm run typecheck` | Strictly type-check both applications |
+| `npm test` | Run API unit tests and frontend tests |
+| `npm run test:e2e` | Run API integration tests |
+| `npm run prisma:studio` | Inspect local data in Prisma Studio |
 
-- Check the issue tracker for milestone-aligned tasks.
-- Follow the repository contribution guidelines for code quality and PR expectations.
-- Contribute to product, architecture, documentation, and developer experience.
+## API documentation
 
-If you are interested in architecture, distributed systems, or modern TypeScript platforms, EstateMint is an ideal place to contribute and learn.
+When the API is running, interactive OpenAPI documentation is available at `/docs`. Routes are versioned under `/api/v1`.
+
+Core route groups:
+
+- `/auth`: register, login, current user
+- `/properties`: public search/details and protected listing management
+- `/favorites`: protected shortlist management
+- `/appointments`: protected tour requests and history
+- `/health`: liveness and dependency readiness
+
+See [client API guide](docs/client-api-guide.md) and [API standards](docs/api-standards.md) for response and error conventions.
+
+## Production build
+
+```bash
+npm ci
+npm run prisma:generate
+npm run lint
+npm run typecheck
+npm test
+npm run test:e2e -- --runInBand
+npm run build
+```
+
+The API artifact is written to `dist/`. The frontend output is written to `apps/web/.next/`.
+
+## Netlify deployment
+
+The root [netlify.toml](netlify.toml) deliberately keeps dependency installation at the repository root so npm workspaces resolve correctly.
+
+- Base directory: repository root (leave blank in the Netlify dashboard)
+- Build command: `npm run build:web`
+- Publish directory: `apps/web/.next`
+- Node.js: 22
+
+Deployment steps:
+
+1. Push the repository to GitHub and import it into Netlify.
+2. Allow Netlify to read the root `netlify.toml`; do not set a conflicting base directory.
+3. Add `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_SITE_URL` to the production environment.
+4. Deploy the site through Netlify's Git integration.
+5. Add the generated Netlify origin to the API's `CORS_ALLOWED_ORIGINS` and restart the API.
+
+Netlify automatically supplies its current Next.js adapter; this repository does not pin a legacy Netlify plugin.
+
+## Backend deployment
+
+Deploy the NestJS API separately to a Node-compatible service such as Render, Railway, Fly.io, or a VPS/container platform. The host must provide PostgreSQL, Redis connectivity, HTTPS, all API environment variables, and a release step that runs `npm run prisma:migrate:deploy`.
+
+Before production traffic:
+
+- generate a strong, unique `JWT_SECRET`
+- replace all development database credentials
+- set `NODE_ENV=production`
+- set `CORS_ALLOWED_ORIGINS` to explicit HTTPS frontend origins
+- keep PostgreSQL and Redis off the public network where possible
+- add provider-level rate limiting when running multiple API instances
+
+## CI
+
+GitHub Actions installs from the lockfile, generates Prisma, lints, type-checks, runs unit and integration tests, and builds both applications on pull requests and pushes to `main`.
+
+## Live demo
+
+Frontend: `https://YOUR-SITE.netlify.app`
+
+Backend API: `https://YOUR-BACKEND-DOMAIN.example.com`
+
+Replace these placeholders only after the services exist; no deployed URL is assumed by the codebase.
+
+## Screenshots
+
+The generated social preview above reflects the production visual system. Add real desktop and mobile captures here after the frontend has been deployed with a reachable API.
+
+## Security notes
+
+The current release validates request DTOs, strips unknown fields, hashes passwords with bcrypt, applies authentication throttling, enforces listing ownership and role checks, restricts CORS, avoids client-side protected-value trust, and returns safe error messages. `npm audit` is expected to report zero known vulnerabilities for the committed lockfile.
+
+The in-process authentication throttle is suitable for a single API instance. A multi-instance production deployment should add a shared Redis-backed or edge/provider rate limit. Access tokens are tab-persistent bearer tokens; refresh-token rotation and server-managed sessions are not yet implemented.
+
+## Known limitations
+
+- Property photography accepts HTTPS URLs; direct file upload and media moderation are not implemented.
+- Tour requests can be created and reviewed, but agent confirmation/cancellation workflows are not yet exposed.
+- Search uses PostgreSQL filters rather than geographic radius or a dedicated search index.
+- The API requires separately managed PostgreSQL and Redis services.
+- Automated browser end-to-end tests are not included; API integration and frontend unit coverage protect the current core paths.
+
+## Future improvements
+
+- Add moderated image uploads backed by object storage
+- Add seller/agent appointment status transitions and notifications
+- Introduce refresh-token rotation and revocation
+- Add geospatial search, map browsing, and saved searches
+- Add browser-level accessibility and journey tests
+
+## Contributing
+
+Open a focused issue before a large change, keep migrations backward-compatible, and run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` before submitting a pull request.
+
+## License
+
+EstateMint is available under the [MIT License](LICENSE).

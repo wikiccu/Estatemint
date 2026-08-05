@@ -6,6 +6,9 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { UsersModule } from './modules/users/users.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { PropertiesModule } from './modules/properties/properties.module';
 
 @Module({
   imports: [
@@ -14,6 +17,9 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     UsersModule,
     AuthModule,
+    PropertiesModule,
+    FavoritesModule,
+    AppointmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

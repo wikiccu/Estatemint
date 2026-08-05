@@ -3,6 +3,7 @@ import Joi from 'joi';
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').required(),
   PORT: Joi.number().port().required(),
+  CORS_ALLOWED_ORIGINS: Joi.string().required(),
   JWT_SECRET: Joi.string().min(32).required(),
   JWT_EXPIRES_IN: Joi.string().required(),
   DATABASE_HOST: Joi.string().hostname().required(),

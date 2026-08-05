@@ -127,7 +127,7 @@ The seed creates:
 - a favorite
 - an appointment request
 
-There is no auth module yet, so the seed hashes a temporary development password with `bcrypt` directly. Once authentication is implemented, password hashing should move behind an application-owned auth/password utility.
+The seed hashes its temporary development password with the same bcrypt cost used by the application password service. Runtime registration and login are owned by the auth module; the seed keeps its hashing local so it can run without bootstrapping NestJS.
 
 Development seed password:
 

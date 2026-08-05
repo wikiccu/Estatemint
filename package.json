@@ -1,29 +1,50 @@
 {
   "name": "estatemint",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "A full-stack real estate discovery and listing marketplace.",
+  "author": "EstateMint contributors",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "workspaces": [
+    "apps/web"
+  ],
+  "overrides": {
+    "@nestjs/swagger": {
+      "js-yaml": "^5.2.2"
+    }
+  },
   "engines": {
     "node": ">=22",
     "npm": ">=10"
   },
   "scripts": {
-    "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "nest build",
+    "build:web": "npm run build --workspace @estatemint/web",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"apps/web/**/*.{ts,tsx,css,json,mjs}\"",
+    "dev": "concurrently --kill-others-on-fail --names api,web \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "nest start --watch",
+    "dev:web": "npm run dev --workspace @estatemint/web",
+    "start": "npm run dev:api",
+    "start:dev": "npm run dev:api",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "npm run lint:api && npm run lint:web",
+    "lint:api": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix && npm run lint:fix --workspace @estatemint/web",
+    "lint:web": "npm run lint --workspace @estatemint/web",
+    "typecheck": "npm run typecheck:api && npm run typecheck:web",
+    "typecheck:api": "tsc --noEmit -p tsconfig.build.json",
+    "typecheck:web": "npm run typecheck --workspace @estatemint/web",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
-    "test": "jest",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "jest --runInBand",
+    "test:web": "npm run test --workspace @estatemint/web",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -67,6 +88,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.0.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -103,7 +125,7 @@
     "testEnvironment": "node"
   },
   "lint-staged": {
-    "*.{ts,js}": [
+    "*.{ts,tsx,js,mjs}": [
       "eslint --fix",
       "prettier --write"
     ]

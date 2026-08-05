@@ -1,166 +1,74 @@
-# EstateMint Architecture v1
+# EstateMint architecture v1
 
-EstateMint begins as a Modular Monolith designed with future service extraction in mind. This approach delivers a cohesive developer experience while preserving domain boundaries and scalability pathways.
+EstateMint is an npm-workspace monorepo with two independently deployable applications:
 
-## Modular Monolith Architecture
+- a Next.js App Router frontend in `apps/web`
+- a NestJS modular-monolith API at the repository root
 
-A modular monolith is a single deployed application with distinct, decoupled modules. EstateMint uses this pattern to keep the codebase manageable, reduce early operational complexity, and accelerate initial development.
+The frontend is prepared for Netlify. The long-running API is deployed separately with PostgreSQL and Redis connectivity.
 
-Key characteristics:
+## API modules
 
-- Single NestJS application entrypoint
-- Domain-specific modules with explicit interfaces
-- Shared core libraries for utilities, database access, and common services
-- Clear asynchronous boundaries for non-blocking operations
-- Architectural discipline to prevent cross-domain tight coupling
+### Auth and users
 
-## Core Modules
+- public buyer registration and login
+- bcrypt password hashing
+- JWT bearer authentication and current-user lookup
+- role metadata, authentication throttling, and safe user serialization
+- internal user repository boundaries
 
-### Auth
+### Properties
 
-Responsibilities:
-
-- User registration and login
-- JWT access token authentication
-- Role-aware JWT payloads for future authorization
-- Password reset and account lifecycle management
-- Session caching using Redis
-
-### Users
-
-Responsibilities:
-
-- Provide the internal user domain foundation used by future authentication and authorization flows.
-- Encapsulate user persistence behind a repository so feature modules do not query Prisma directly.
-- Return safe user objects by default so password hashes do not leak into service responses.
-- Support foundational operations such as lookup, creation, updates, and deactivation.
-
-### Property
-
-Responsibilities:
-
-- Property creation, editing, and lifecycle transitions
-- Ownership and agent assignment
-- Property metadata and media attachments
-- Publication status and archival workflows
-- Administrative controls for listing validation
-
-### Search
-
-Responsibilities:
-
-- Property discovery and filtering
-- Query normalization and validation
-- Pagination, sorting, and relevance ranking
-- Search caching and performance optimization
-- Future support for search indexing engines
+- public active-listing search, filtering, sorting, pagination, and details
+- authenticated owner listing views
+- seller, agent, and administrator publishing
+- owner/administrator update and archive authorization
 
 ### Favorites
 
-Responsibilities:
+- authenticated, idempotent save/remove operations
+- active-property shortlist views scoped to the current user
 
-- Save and revisit properties
-- Persist favorite relationships per user
-- Integrate with property views and listing summaries
-- Support future watchlist and saved search experiences
+### Appointments
 
-### Notifications
+- authenticated tour requests for future times
+- current-user tour history
+- validation that prevents owners from touring their own listing
 
-Responsibilities:
+### Health and common infrastructure
 
-- Event-driven notification orchestration
-- In-app, email, and webhook notification channels
-- Notification preference management
-- Delivery status and retry semantics
+- liveness and PostgreSQL/Redis readiness probes
+- global request validation and a stable error envelope
+- validated environment configuration
+- Prisma lifecycle integration and OpenAPI documentation
 
-## Future Migration Path to Microservices
-
-The current design is intentionally modular so modules can be extracted into standalone services when the platform requires independent scaling.
-
-Migration path:
-
-1. Maintain shared contracts and DTOs within a common library.
-2. Introduce API gateways or GraphQL federation for cross-module communication.
-3. Extract stateful domain modules behind service APIs (e.g. Search Service, Notifications Service).
-4. Replace in-process module calls with asynchronous messaging or HTTP calls.
-5. Move shared persistence into dedicated stores only when necessary.
-
-This path preserves the initial developer experience while enabling future operational flexibility.
-
-## Architecture Diagrams
-
-### High-Level Module Diagram
-
-```mermaid
-flowchart TD
-    subgraph EstateMint Modular Monolith
-        A[Auth Module]
-        B[Property Module]
-        C[Search Module]
-        D[Favorites Module]
-        E[Notifications Module]
-        F[Shared Core]
-    end
-
-    A --> F
-    B --> F
-    C --> F
-    D --> F
-    E --> F
-    B --> C
-    D --> B
-    E --> B
-    A --> B
-```
-
-### Future Microservice Migration
+## Request flow
 
 ```mermaid
 flowchart LR
-    subgraph API Gateway
-        G[API Layer]
-    end
-
-    subgraph Core Services
-        S1[Auth Service]
-        S2[Property Service]
-        S3[Search Service]
-        S4[Favorites Service]
-        S5[Notifications Service]
-    end
-
-    subgraph Data Stores
-        P[(PostgreSQL)]
-        R[(Redis)]
-    end
-
-    G --> S1
-    G --> S2
-    G --> S3
-    G --> S4
-    G --> S5
-    S1 --> P
-    S2 --> P
-    S3 --> P
-    S4 --> P
-    S5 --> P
-    S1 --> R
-    S2 --> R
-    S5 --> R
+    B[Next.js browser app] -->|HTTPS + JSON| A[NestJS API]
+    A --> V[Validation and auth guards]
+    V --> M[Domain modules]
+    M --> P[(PostgreSQL via Prisma)]
+    A --> R[(Redis readiness)]
 ```
 
-## Deployment Considerations
+The browser receives its API prefix from `NEXT_PUBLIC_API_BASE_URL`. Access tokens are sent in the `Authorization` header. Browser requests are restricted to `CORS_ALLOWED_ORIGINS`; credentialed cross-origin cookies are not used.
 
-- Docker is the primary packaging mechanism for local development and production deployment.
-- PostgreSQL provides durable relational storage for marketplace data.
-- Redis is used for caching, session state, and short-lived coordination.
-- The monorepo structure enables shared libraries and consistent cross-module patterns.
+## Data ownership
 
-## Operational Goals
+- User identifiers come from verified JWTs, never protected client input.
+- Property creation assigns the authenticated user as owner.
+- Property update/archive checks owner identity or administrator role in the service layer.
+- Favorite and appointment queries are always scoped by the authenticated user.
+- Public property reads expose only active listings.
 
-- Start with a single deployable service to reduce configuration overhead.
-- Keep modules independent enough that extraction does not require major refactors.
-- Adopt infrastructure patterns that scale horizontally when load increases.
-- Instrument the application with observability and traceability early in development.
+## Deployment boundaries
 
-EstateMint v1 is a practical, production-oriented architecture designed to bootstrap a scalable real estate marketplace while keeping future service evolution straightforward.
+Netlify builds only `apps/web` through `npm run build:web` and serves the `.next` output with its current OpenNext adapter. The API Docker image runs `npm run build:api`; migrations are a separate release step.
+
+PostgreSQL is the source of truth. Redis is currently an operational dependency/readiness target and is reserved for future shared throttling, revocation, caching, or notification coordination.
+
+## Deliberate limitations
+
+The current modular monolith is preferred over premature service extraction. Refresh tokens, media uploads, notification delivery, appointment status transitions, and a dedicated search index remain explicit future capabilities.

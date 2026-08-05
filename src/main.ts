@@ -9,11 +9,20 @@ import { SWAGGER_PATH } from './common/constants/api.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.use(morgan('dev'));
-  configureApiStandards(app);
-
   const configService = app.get(ConfigService);
   const port = configService.getOrThrow<number>('app.port');
+  const isProduction = configService.getOrThrow<boolean>('app.isProduction');
+  const allowedOrigins = configService.getOrThrow<string[]>(
+    'app.corsAllowedOrigins',
+  );
+
+  app.use(morgan(isProduction ? 'combined' : 'dev'));
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: false,
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+  configureApiStandards(app);
   const swaggerConfig = new DocumentBuilder()
     .setTitle('EstateMint API')
     .setDescription('EstateMint backend API documentation')
@@ -22,7 +31,9 @@ async function bootstrap() {
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 
-  SwaggerModule.setup(SWAGGER_PATH, app, swaggerDocument);
+  SwaggerModule.setup(SWAGGER_PATH, app, swaggerDocument, {
+    customSiteTitle: 'EstateMint API documentation',
+  });
 
   await app.listen(port);
 }

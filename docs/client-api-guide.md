@@ -1,434 +1,30 @@
-# EstateMint Client API Guide
+# Client API guide
 
-This document is for frontend and client-side agents integrating with the EstateMint backend.
+This guide documents the production-facing HTTP contract used by the Next.js application in `apps/web`.
 
-## Current Backend Scope
+## Base URL
 
-Implemented public API areas:
+All application routes use the `/api/v1` prefix. Configure the browser with an environment-specific full prefix:
 
-- API metadata
-- Authentication
-- Current authenticated user
-- Health checks
-- Swagger documentation
-
-Not implemented yet:
-
-- Property listing APIs
-- Property detail APIs
-- Favorites APIs
-- Appointment APIs
-- Upload APIs
-- Admin APIs
-- Role-management APIs
-- Refresh tokens
-
-Do not write client code that assumes those missing APIs exist.
-
-## Base URLs
-
-Local backend:
-
-```ts
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
 ```
 
-Swagger documentation:
+Production code must not assume a host. Netlify should receive the public HTTPS API prefix through its environment settings.
 
-```text
-http://localhost:3000/docs
-```
+## Request conventions
 
-All application API routes are prefixed with:
+- Send and accept JSON.
+- Send JWTs through `Authorization: Bearer <accessToken>`.
+- Treat every non-2xx response as an error.
+- Abort or time out requests that are no longer useful.
+- Do not fetch the API while Next.js is building; current marketplace requests run in client components.
 
-```text
-/api/v1
-```
+The frontend centralizes these rules in `apps/web/src/lib/api.ts`.
 
-Swagger is intentionally outside the prefix at `/docs`.
+## Errors
 
-## Authentication Summary
-
-EstateMint uses JWT bearer authentication.
-
-Flow:
-
-1. Register with `POST /auth/register`, or use an existing seeded user.
-2. Login with `POST /auth/login`.
-3. Store the returned `accessToken` on the client.
-4. Send protected requests with:
-
-```http
-Authorization: Bearer <accessToken>
-```
-
-Seeded login credentials after `npm run prisma:seed`:
-
-```text
-buyer@estatemint.local / Password123!
-agent@estatemint.local / Password123!
-admin@estatemint.local / Password123!
-```
-
-Public registration currently creates a default `BUYER` user. Do not expose client-side role selection for registration.
-
-## Shared Types
-
-Use these TypeScript types on the client.
-
-```ts
-export type UserRole = 'BUYER' | 'SELLER' | 'AGENT' | 'ADMIN';
-
-export interface SafeUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  user: SafeUser;
-}
-
-export interface ApiErrorResponse {
-  statusCode: number;
-  error: string;
-  message: string | string[];
-  path: string;
-  timestamp: string;
-  errors?: Array<{
-    field: string;
-    messages: string[];
-  }>;
-}
-```
-
-The backend never returns `passwordHash` in normal API responses.
-
-## API Client Helper
-
-Recommended small fetch wrapper:
-
-```ts
-const API_BASE_URL = 'http://localhost:3000/api/v1';
-
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly body: unknown,
-  ) {
-    super(`API request failed with status ${status}`);
-  }
-}
-
-export async function apiRequest<TResponse>(
-  path: string,
-  options: RequestInit = {},
-): Promise<TResponse> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  const contentType = response.headers.get('content-type');
-  const body =
-    contentType?.includes('application/json') === true
-      ? await response.json()
-      : await response.text();
-
-  if (!response.ok) {
-    throw new ApiError(response.status, body);
-  }
-
-  return body as TResponse;
-}
-```
-
-Authenticated helper:
-
-```ts
-export function withBearerToken(
-  token: string,
-  options: RequestInit = {},
-): RequestInit {
-  return {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  };
-}
-```
-
-## Endpoints
-
-### API Metadata
-
-```http
-GET /api/v1
-```
-
-Response:
-
-```json
-{
-  "name": "EstateMint API",
-  "version": "0.0.1",
-  "status": "ok",
-  "docs": "/docs",
-  "health": "/api/v1/health"
-}
-```
-
-Client example:
-
-```ts
-interface ApiRootResponse {
-  name: string;
-  version: string;
-  status: 'ok';
-  docs: string;
-  health: string;
-}
-
-const apiRoot = await apiRequest<ApiRootResponse>('');
-```
-
-### Register
-
-```http
-POST /api/v1/auth/register
-```
-
-Request:
-
-```json
-{
-  "email": "buyer@estatemint.local",
-  "password": "Password123!",
-  "firstName": "Ben",
-  "lastName": "Buyer"
-}
-```
-
-Validation rules:
-
-- `email`: valid email, max 254 characters
-- `password`: string, 8 to 128 characters
-- `firstName`: string, 1 to 80 characters
-- `lastName`: string, 1 to 80 characters
-
-Success:
-
-```http
-201 Created
-```
-
-Response:
-
-```json
-{
-  "id": "27a701e8-2ff8-4a0a-a3f1-b44a43a7a548",
-  "email": "buyer@estatemint.local",
-  "firstName": "Ben",
-  "lastName": "Buyer",
-  "role": "BUYER",
-  "isActive": true,
-  "createdAt": "2026-06-24T12:00:00.000Z",
-  "updatedAt": "2026-06-24T12:00:00.000Z"
-}
-```
-
-Possible errors:
-
-- `400 Bad Request`: validation failed
-- `409 Conflict`: email already exists
-
-Client example:
-
-```ts
-export async function register(
-  input: RegisterRequest,
-): Promise<SafeUser> {
-  return apiRequest<SafeUser>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-```
-
-### Login
-
-```http
-POST /api/v1/auth/login
-```
-
-Request:
-
-```json
-{
-  "email": "buyer@estatemint.local",
-  "password": "Password123!"
-}
-```
-
-Success:
-
-```http
-200 OK
-```
-
-Response:
-
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "27a701e8-2ff8-4a0a-a3f1-b44a43a7a548",
-    "email": "buyer@estatemint.local",
-    "firstName": "Ben",
-    "lastName": "Buyer",
-    "role": "BUYER",
-    "isActive": true,
-    "createdAt": "2026-06-24T12:00:00.000Z",
-    "updatedAt": "2026-06-24T12:00:00.000Z"
-  }
-}
-```
-
-Possible errors:
-
-- `400 Bad Request`: validation failed
-- `401 Unauthorized`: invalid email or password
-- `403 Forbidden`: user account is inactive
-
-Client example:
-
-```ts
-export async function login(input: LoginRequest): Promise<AuthResponse> {
-  return apiRequest<AuthResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
-}
-```
-
-### Current User
-
-```http
-GET /api/v1/auth/me
-Authorization: Bearer <accessToken>
-```
-
-Success:
-
-```http
-200 OK
-```
-
-Response:
-
-```json
-{
-  "id": "27a701e8-2ff8-4a0a-a3f1-b44a43a7a548",
-  "email": "buyer@estatemint.local",
-  "firstName": "Ben",
-  "lastName": "Buyer",
-  "role": "BUYER",
-  "isActive": true,
-  "createdAt": "2026-06-24T12:00:00.000Z",
-  "updatedAt": "2026-06-24T12:00:00.000Z"
-}
-```
-
-Possible errors:
-
-- `401 Unauthorized`: missing, invalid, or expired token
-
-Client example:
-
-```ts
-export async function getCurrentUser(token: string): Promise<SafeUser> {
-  return apiRequest<SafeUser>(
-    '/auth/me',
-    withBearerToken(token),
-  );
-}
-```
-
-## Health Endpoints
-
-### Full Health
-
-```http
-GET /api/v1/health
-```
-
-Returns `200 OK` when the app and dependencies are healthy.
-
-Returns `503 Service Unavailable` when PostgreSQL or Redis is unavailable, but still returns a useful body:
-
-```json
-{
-  "status": "degraded",
-  "timestamp": "2026-06-24T12:00:00.000Z",
-  "uptime": 1234,
-  "environment": "development",
-  "version": "0.0.1",
-  "checks": {
-    "database": {
-      "status": "down",
-      "message": "connect ECONNREFUSED 127.0.0.1:5432"
-    },
-    "redis": {
-      "status": "up",
-      "latencyMs": 2
-    }
-  }
-}
-```
-
-### Liveness
-
-```http
-GET /api/v1/health/live
-```
-
-Use for process-level checks.
-
-### Readiness
-
-```http
-GET /api/v1/health/ready
-```
-
-Use for dependency-aware checks.
-
-## Error Handling
-
-All regular API errors use the global error shape:
+Regular API errors use this shape:
 
 ```json
 {
@@ -436,7 +32,7 @@ All regular API errors use the global error shape:
   "error": "Bad Request",
   "message": "Validation failed",
   "path": "/api/v1/auth/register",
-  "timestamp": "2026-06-24T12:00:00.000Z",
+  "timestamp": "2026-08-05T12:00:00.000Z",
   "errors": [
     {
       "field": "email",
@@ -446,95 +42,149 @@ All regular API errors use the global error shape:
 }
 ```
 
-Validation errors include `errors` with field-level messages.
+Use `errors` for field-level form feedback and `message` for a safe form-level fallback. Never display backend stack traces.
 
-Do not rely only on `message` for form errors. Prefer `errors` when present.
+## Authentication
 
-## Token Storage Guidance
+### Register
 
-For web clients:
+```http
+POST /auth/register
+```
 
-- Keep the access token in memory when possible.
-- If persistence is required, use a clear project decision before choosing local storage or cookies.
-- Send tokens only in the `Authorization` header.
-- Do not put tokens in query strings.
-
-Refresh tokens are not implemented yet.
-
-## Frontend Auth State Shape
-
-Recommended client auth state:
-
-```ts
-interface AuthState {
-  accessToken: string | null;
-  user: SafeUser | null;
-  isAuthenticated: boolean;
+```json
+{
+  "email": "buyer@example.com",
+  "password": "Password123!",
+  "firstName": "Ben",
+  "lastName": "Buyer"
 }
 ```
 
-After login:
+Public registration creates an active buyer. Passwords require 8–128 characters with upper and lowercase letters and a number.
 
-```ts
-const auth = await login({
-  email: 'buyer@estatemint.local',
-  password: 'Password123!',
-});
+### Login
 
-authState.accessToken = auth.accessToken;
-authState.user = auth.user;
-authState.isAuthenticated = true;
+```http
+POST /auth/login
 ```
 
-On app boot, if an access token exists:
-
-```ts
-try {
-  const user = await getCurrentUser(accessToken);
-  authState.user = user;
-  authState.isAuthenticated = true;
-} catch {
-  authState.accessToken = null;
-  authState.user = null;
-  authState.isAuthenticated = false;
+```json
+{
+  "email": "buyer@example.com",
+  "password": "Password123!"
 }
 ```
 
-## Current Role Behavior
+The response contains `accessToken` and a safe `user` object. Authentication endpoints apply a per-instance attempt limit.
 
-Roles exist in user objects and JWT payloads:
+### Current user
 
-```ts
-type UserRole = 'BUYER' | 'SELLER' | 'AGENT' | 'ADMIN';
+```http
+GET /auth/me
+Authorization: Bearer <accessToken>
 ```
 
-Current public registration creates `BUYER` users by default.
+Missing, invalid, expired, or deactivated sessions return `401`. The web application then clears its tab-scoped token state.
 
-There are no role-specific protected APIs yet. Do not hide or show critical business features based only on client-side role checks once business APIs exist; the backend must enforce permissions.
+Refresh tokens are not part of the current access-token flow.
 
-## Quick Manual Test
+## Properties
 
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"buyer@estatemint.local\",\"password\":\"Password123!\"}"
+### Search active properties
+
+```http
+GET /properties?search=garden&city=Denver&type=HOUSE&minPrice=250000&maxPrice=900000&bedrooms=3&sort=newest&page=1&pageSize=12
 ```
 
-Then call:
+Supported `sort` values are `newest`, `price-asc`, and `price-desc`. `pageSize` is capped at 50. The result contains `items`, `page`, `pageSize`, `total`, and `totalPages`.
 
-```bash
-curl http://localhost:3000/api/v1/auth/me \
-  -H "Authorization: Bearer <accessToken>"
+### Property detail
+
+```http
+GET /properties/:id
 ```
 
-## Client Implementation Checklist
+Only active properties are public. Missing or inactive IDs return `404`.
 
-- Use `http://localhost:3000/api/v1` as the local API base URL.
-- Use `/docs` to inspect Swagger.
-- Implement register form against `POST /auth/register`.
-- Implement login form against `POST /auth/login`.
-- Store and attach `accessToken` as a bearer token.
-- Implement current-user bootstrap with `GET /auth/me`.
-- Handle `400`, `401`, `403`, and `409` explicitly in auth UI.
-- Do not call Users APIs; no public Users API exists.
-- Do not call Properties/Favorites/Appointments/Uploads APIs yet; they do not exist.
+### Current user's listings
+
+```http
+GET /properties/mine
+Authorization: Bearer <accessToken>
+```
+
+### Publish a property
+
+```http
+POST /properties
+Authorization: Bearer <accessToken>
+```
+
+Seller, agent, or administrator role required. The API assigns ownership from the authenticated user; the client cannot choose `ownerId`.
+
+### Update or archive
+
+```http
+PATCH /properties/:id
+DELETE /properties/:id
+Authorization: Bearer <accessToken>
+```
+
+Only the owner or an administrator may change a listing. Delete is a recoverable archive operation and does not remove the database record.
+
+## Favorites
+
+All routes require a bearer token.
+
+```http
+GET /favorites
+POST /favorites/:propertyId
+DELETE /favorites/:propertyId
+```
+
+Adding the same property twice is idempotent. The list excludes properties that are no longer active.
+
+## Tour requests
+
+### List current user's requests
+
+```http
+GET /appointments
+Authorization: Bearer <accessToken>
+```
+
+### Request a tour
+
+```http
+POST /appointments
+Authorization: Bearer <accessToken>
+```
+
+```json
+{
+  "propertyId": "64225f72-b5aa-4370-80db-0443c109609c",
+  "scheduledAt": "2026-09-15T14:00:00.000Z",
+  "message": "Afternoons work best for me."
+}
+```
+
+The property must be active, the time must be in the future, and owners cannot request tours of their own listings.
+
+## Health
+
+```http
+GET /health
+GET /health/live
+GET /health/ready
+```
+
+Liveness only checks the process. Full health and readiness also probe PostgreSQL and Redis, returning `503` with an operational status body when a dependency is unavailable.
+
+## CORS
+
+The API accepts browser requests only from the comma-separated origins in `CORS_ALLOWED_ORIGINS`. Add the final Netlify HTTPS origin before production testing. The JWT flow does not use credentialed cross-origin cookies.
+
+## Interactive reference
+
+Swagger is served from `/docs` on the API host and reflects the controller DTOs and bearer requirements.

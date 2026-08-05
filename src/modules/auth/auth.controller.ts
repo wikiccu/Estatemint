@@ -22,6 +22,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AuthRateLimitGuard } from './guards/auth-rate-limit.guard';
 import type { AuthenticatedUser } from './types/authenticated-user.type';
 
 @ApiTags('Auth')
@@ -30,6 +31,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @UseGuards(AuthRateLimitGuard)
   @ApiCreatedResponse({ description: 'User registered successfully.' })
   @ApiConflictResponse({ description: 'Email is already registered.' })
   register(@Body() registerDto: RegisterDto): Promise<SafeUser> {
@@ -37,6 +39,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(AuthRateLimitGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
     description: 'Login succeeded and returned an access token.',

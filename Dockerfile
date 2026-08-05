@@ -13,7 +13,7 @@ ENV DATABASE_URL=$DATABASE_URL
 
 RUN npm run prisma:generate
 
-RUN npm run build
+RUN npm run build:api
 
 EXPOSE 3000
 

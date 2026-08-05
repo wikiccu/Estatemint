@@ -6,7 +6,7 @@ EstateMint uses `@nestjs/config` as a dedicated, global configuration layer. The
 
 Configuration lives under `src/config/`:
 
-- `app.config.ts`: application runtime settings such as `NODE_ENV` and `PORT`.
+- `app.config.ts`: application runtime settings such as `NODE_ENV`, `PORT`, and allowed browser origins.
 - `auth.config.ts`: JWT authentication settings.
 - `database.config.ts`: PostgreSQL connection settings.
 - `redis.config.ts`: Redis connection settings.
@@ -28,6 +28,7 @@ The checked-in `.env.example` is optimized for Docker Compose, where the API con
 ```dotenv
 NODE_ENV=development
 PORT=3000
+CORS_ALLOWED_ORIGINS=http://localhost:3001
 JWT_SECRET=replace-with-a-long-random-secret-at-least-32-characters
 JWT_EXPIRES_IN=15m
 
@@ -42,7 +43,7 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 ```
 
-Use these values when running the full stack with Docker Compose.
+Use these database and Redis hostnames when the API itself runs inside a Docker network. The committed Compose file starts infrastructure only, so host-based API development should use `localhost` as described below.
 
 If you run the NestJS app directly on your host machine with `npm run start:dev` while PostgreSQL and Redis are still provided by Docker Compose, change only the host values in your local `.env`:
 
@@ -56,9 +57,9 @@ Keep `DATABASE_NAME=estatemint` so it matches the PostgreSQL database created by
 
 `DATABASE_URL` is configured directly rather than derived in application code. Prisma expects a single connection URL for migrations, client generation, Studio, and runtime database access. The split variables remain useful for Docker readability and low-level health checks.
 
-Docker Compose also sets container-only host overrides for the API service, so the app container always reaches `postgres` and `redis` through the Docker network even if your private `.env` uses `localhost` for host-based development.
-
 The `.env` file is intentionally not committed. Keep real credentials in local environment files, deployment secrets, or platform-managed secret stores.
+
+Create `apps/web/.env.local` from `apps/web/.env.example` for the Next.js application. `NEXT_PUBLIC_API_BASE_URL` must include `/api/v1`; `NEXT_PUBLIC_SITE_URL` should be the final public origin in production.
 
 ## Validation
 
@@ -70,6 +71,7 @@ Validation currently requires:
 
 - `NODE_ENV`: one of `development`, `test`, or `production`.
 - `PORT`: valid TCP port.
+- `CORS_ALLOWED_ORIGINS`: comma-separated browser origins allowed to call the API.
 - `JWT_SECRET`: secret key used to sign JWT access tokens.
 - `JWT_EXPIRES_IN`: JWT access token lifetime, such as `15m`.
 - `DATABASE_HOST`: PostgreSQL hostname.

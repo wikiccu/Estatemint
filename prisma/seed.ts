@@ -88,12 +88,12 @@ async function main() {
       images: {
         create: [
           {
-            url: 'https://images.estatemint.local/properties/downtown-condo-1.jpg',
+            url: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=85',
             alt: 'Open living room with city view',
             sortOrder: 0,
           },
           {
-            url: 'https://images.estatemint.local/properties/downtown-condo-2.jpg',
+            url: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1600&q=85',
             alt: 'Modern kitchen with island',
             sortOrder: 1,
           },
@@ -121,7 +121,7 @@ async function main() {
       images: {
         create: [
           {
-            url: 'https://images.estatemint.local/properties/family-home-1.jpg',
+            url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=85',
             alt: 'Front exterior with landscaped garden',
             sortOrder: 0,
           },
