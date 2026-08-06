@@ -10,5 +10,5 @@ export default defineConfig([
       '@next/next/no-img-element': 'off',
     },
   },
-  globalIgnores(['.next/**', 'coverage/**']),
+  globalIgnores(['.next/**', '.netlify/**', 'coverage/**']),
 ]);

@@ -4,7 +4,19 @@ import { SiteHeader } from '@/components/site-header';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const getSiteUrl = (): URL | undefined => {
+  const value = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (!value) return undefined;
+
+  try {
+    return new URL(value);
+  } catch {
+    return undefined;
+  }
+};
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   title: {
@@ -17,7 +29,7 @@ export const metadata: Metadata = {
   keywords: ['real estate', 'property marketplace', 'homes for sale'],
   ...(siteUrl
     ? {
-        metadataBase: new URL(siteUrl),
+        metadataBase: siteUrl,
         openGraph: {
           title: 'EstateMint — Find a place worth moving for',
           description:
