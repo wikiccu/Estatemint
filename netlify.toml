@@ -3,7 +3,10 @@
   publish = "apps/web/.next"
 
 [build.environment]
+  HUSKY = "0"
   NODE_VERSION = "22"
+  NPM_FLAGS = "--include=dev"
+  NPM_VERSION = "10"
 
 [dev]
   command = "npm run dev:web"
