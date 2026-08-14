@@ -3,6 +3,7 @@
 import { useAuth } from '@/components/auth-provider';
 import { ApiError, propertiesApi } from '@/lib/api';
 import { getFormString } from '@/lib/form-data';
+import { propertyDetailsHref } from '@/lib/routes';
 import type { Currency, PropertyType } from '@/types/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -69,7 +70,7 @@ export function ListingForm() {
         yearBuilt: yearBuilt ? Number(yearBuilt) : undefined,
         imageUrls: imageUrls.length ? imageUrls : undefined,
       });
-      router.push(`/properties/${property.id}`);
+      router.push(propertyDetailsHref(property.id));
     } catch (reason) {
       if (reason instanceof ApiError) {
         setError(reason.message);

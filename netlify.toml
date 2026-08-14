@@ -1,6 +1,6 @@
 [build]
   command = "npm run build:web"
-  publish = "apps/web/.next"
+  publish = "apps/web/out"
 
 [build.environment]
   HUSKY = "0"
@@ -8,9 +8,16 @@
   NODE_VERSION = "22"
   NPM_FLAGS = "--include=dev"
   NPM_VERSION = "10"
+  # These values are intentionally embedded in browser code and are not secrets.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_API_BASE_URL,NEXT_PUBLIC_SITE_URL"
 
 [dev]
   command = "npm run dev:web"
   targetPort = 3001
   port = 8888
   framework = "#custom"
+
+[[redirects]]
+  from = "/properties/:id"
+  to = "/properties/detail?id=:id"
+  status = 301

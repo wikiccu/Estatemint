@@ -10,6 +10,7 @@ import {
 } from '@/lib/api';
 import { formatPrice, formatPropertyType } from '@/lib/format';
 import { getFormString } from '@/lib/form-data';
+import { propertyDetailsHref } from '@/lib/routes';
 import type { Property } from '@/types/api';
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
@@ -24,6 +25,7 @@ export function PropertyDetail({ id }: { id: string }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [touring, setTouring] = useState(false);
+  const detailsHref = propertyDetailsHref(id);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -212,7 +214,7 @@ export function PropertyDetail({ id }: { id: string }) {
               <p>Sign in to save this home or request a private tour.</p>
               <Link
                 className="button button-block"
-                href={`/login?next=/properties/${id}`}
+                href={`/login?next=${encodeURIComponent(detailsHref)}`}
               >
                 Sign in to continue
               </Link>

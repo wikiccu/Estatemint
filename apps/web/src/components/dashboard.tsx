@@ -10,6 +10,7 @@ import {
   propertiesApi,
 } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
+import { propertyDetailsHref } from '@/lib/routes';
 import type { Appointment, Property } from '@/types/api';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -162,7 +163,9 @@ export function Dashboard() {
                         {appointment.status}
                       </span>
                       <h3>
-                        <Link href={`/properties/${appointment.property.id}`}>
+                        <Link
+                          href={propertyDetailsHref(appointment.property.id)}
+                        >
                           {appointment.property.title}
                         </Link>
                       </h3>

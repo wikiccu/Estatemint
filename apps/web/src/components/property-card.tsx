@@ -1,13 +1,15 @@
 import { formatPrice, formatPropertyType } from '@/lib/format';
+import { propertyDetailsHref } from '@/lib/routes';
 import type { Property } from '@/types/api';
 import Link from 'next/link';
 
 export function PropertyCard({ property }: { property: Property }) {
   const image = property.images[0];
+  const detailsHref = propertyDetailsHref(property.id);
 
   return (
     <article className="property-card">
-      <Link className="property-media" href={`/properties/${property.id}`}>
+      <Link className="property-media" href={detailsHref}>
         {image ? (
           <img
             src={image.url}
@@ -27,7 +29,7 @@ export function PropertyCard({ property }: { property: Property }) {
           {formatPrice(property.price, property.currency)}
         </div>
         <h3>
-          <Link href={`/properties/${property.id}`}>{property.title}</Link>
+          <Link href={detailsHref}>{property.title}</Link>
         </h3>
         <p>
           {property.city} · {property.address}

@@ -25,7 +25,7 @@ EstateMint is a full-stack real estate marketplace for discovering active proper
 | Data | PostgreSQL 17, Prisma 7 |
 | Infrastructure | Redis 8, Docker Compose |
 | Quality | ESLint, Prettier, Jest, Supertest, Vitest, GitHub Actions |
-| Frontend hosting | Netlify with its OpenNext adapter |
+| Frontend hosting | Netlify static hosting (no Netlify Functions) |
 
 ## Architecture
 
@@ -192,7 +192,7 @@ npm run test:e2e -- --runInBand
 npm run build
 ```
 
-The API artifact is written to `dist/`. The frontend output is written to `apps/web/.next/`.
+The API artifact is written to `dist/`. The frontend static export is written to `apps/web/out/`.
 
 ## Netlify deployment
 
@@ -200,18 +200,20 @@ The root [netlify.toml](netlify.toml) deliberately keeps dependency installation
 
 - Base directory: repository root (leave blank in the Netlify dashboard)
 - Build command: `npm run build:web`
-- Publish directory: `apps/web/.next`
+- Publish directory: `apps/web/out`
 - Node.js: 22
 
 Deployment steps:
 
 1. Push the repository to GitHub and import it into Netlify.
 2. Allow Netlify to read the root `netlify.toml`; do not set a conflicting base directory.
-3. Add `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_SITE_URL` to the production environment.
+3. Add only `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_SITE_URL` to the production environment. They are public browser configuration, not secrets.
 4. Deploy the site through Netlify's Git integration.
 5. Add the generated Netlify origin to the API's `CORS_ALLOWED_ORIGINS` and restart the API.
 
-Netlify automatically supplies its current Next.js adapter; this repository does not pin a legacy Netlify plugin.
+Do not add `DATABASE_*`, `JWT_*`, `REDIS_*`, `PORT`, or `CORS_ALLOWED_ORIGINS` to Netlify. Those values belong only on the separately hosted API. The frontend uses Next.js static export, so Netlify publishes HTML, CSS, and JavaScript without creating a backend function.
+
+Netlify secret scanning remains enabled. The configuration excludes only the two intentional `NEXT_PUBLIC_*` values from value matching because Next.js must embed them in browser bundles; no backend secret keys or paths are excluded.
 
 ## Backend deployment
 

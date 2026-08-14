@@ -65,7 +65,7 @@ The browser receives its API prefix from `NEXT_PUBLIC_API_BASE_URL`. Access toke
 
 ## Deployment boundaries
 
-Netlify builds only `apps/web` through `npm run build:web` and serves the `.next` output with its current OpenNext adapter. The API Docker image runs `npm run build:api`; migrations are a separate release step.
+Netlify builds only `apps/web` through `npm run build:web` and publishes the static `apps/web/out` directory. No API route, server-rendering handler, or Netlify Function is deployed. The API Docker image runs `npm run build:api`; migrations are a separate release step.
 
 PostgreSQL is the source of truth. Redis is currently an operational dependency/readiness target and is reserved for future shared throttling, revocation, caching, or notification coordination.
 
